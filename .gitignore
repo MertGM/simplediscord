@@ -1,0 +1,4 @@
+venv/
+url.txt
+src/url.txt
+src/__pycache__/
