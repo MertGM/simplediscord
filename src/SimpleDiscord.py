@@ -382,6 +382,9 @@ def _Connect():
 
 def Connect(token, api, guild=None):
     #websocket.enableTrace(True)
+    global _token
+    global _api
+    global _guild
     _token = token
     _api = api
     _guild = guild
@@ -398,6 +401,7 @@ def _Keep_alive():
 
 
 def Main(func):
+    print("main")
     def wrapper(*arg, **kwargs):
         func()
 
