@@ -28,22 +28,39 @@ class Op_Code(IntEnum):
 # Discord close events
 # Discord closes connection or sends invalid codes.
 class Close_Event(IntEnum):
-    UNKNOWN = 4000
-    UNKNOWN_OPCODE = 4001
-    DECODE_ERROR = 4002
-    NOT_AUTHENTICATED = 4003
+    UNKNOWN               = 4000
+    UNKNOWN_OPCODE        = 4001
+    DECODE_ERROR          = 4002
+    NOT_AUTHENTICATED     = 4003
     AUTHENTICATION_FAILED = 4004
     ALREADY_AUTHENTICATED = 4005
-    INVALID_SEQ = 4007
-    RATE_LIMITED = 4008
-    SESSION_TIMED_OUT = 4009
-    INVALID_SHARD = 4010
-    SHARDING_REQUIRED = 40011
-    INVALID_API_VERSION = 4012
-    INVALID_INTENTS = 4013
-    DISALLOWED_INTENTS = 4014
+    INVALID_SEQ           = 4007
+    RATE_LIMITED          = 4008
+    SESSION_TIMED_OUT     = 4009
+    INVALID_SHARD         = 4010
+    SHARDING_REQUIRED     = 4011
+    INVALID_API_VERSION   = 4012
+    INVALID_INTENTS       = 4013
+    DISALLOWED_INTENTS    = 4014
 
 
+class Intents(IntEnum):
+    GUILDS                    = 1
+    GUILD_MEMBERS             = 2
+    GUILD_BANS                = 4
+    GUILD_EMOJIS_AND_STICKERS = 8
+    GUILD_INTEGRATIONS        = 16
+    GUILD_WEBHOOKS            = 32
+    GUILD_INVITES             = 64
+    GUILD_VOICE_STATES        = 128
+    GUILD_PRESENCES           = 256
+    GUILD_MESSAGES            = 512
+    GUILD_MESSAGE_REACTIONS   = 1024
+    GUILD_MESSAGE_TYPING      = 2048
+    DIRECT_MESSAGES           = 4096
+    DIRECT_MESSAGE_REACTIONS  = 8192
+    DIRECT_MESSAGE_TYPING     = 16384
+    GUILD_SCHEDULED_EVENTS    = 32768
 
 _http = urllib3.PoolManager()
 
@@ -64,7 +81,7 @@ _loop_heartbeat = True
 _ack_heartbeat = None
 
 
-user = {"username": None}
+commands = {}
 
 
 def _Interrupt(signal, frame):
@@ -249,11 +266,36 @@ def _Event_handler(ws, op_code, seq, message):
 
 
 
-    elif op_code >= Close_Event.UNKNOWN and op_code <= Close_Event.DISALLOWED_INTENTS:
+    # Error messages according to Discord's api docs.
+    elif op_code == Close_Event.UNKNOWN:
+        print("We're not sure what went wrong. Trying to reconnect...")
         _Resume(ws, seq)
-    else:
-        pass
-        # Some other event.
+    elif op_code == Close_Event.UNKNOWN_OPCODE:
+        print("You sent an invalid Gateway opcode or an invalid payload for an opcode. Don't do that!")
+    elif op_code == Close_Event.DECODE_ERROR:
+        print("You sent an invalid payload to us. Don't do that!")
+    elif op_code == Close_Event.NOT_AUTHENTICATED:
+        print("You sent us a payload prior to identifying.")
+    elif op_code == Close_Event.AUTHENTICATION_FAILED:
+        print("You sent an invalid payload to us. Don't do that!")
+    elif op_code == Close_Event.ALREADY_AUTHENTICATED:
+        print("You sent more than one identify payload. Don't do that!")
+    elif op_code == Close_Event.INVALID_SEQ:
+        print("The account token sent with your identify payload is incorrect.")
+    elif op_code == Close_Event.RATE_LIMITED:
+        print("Woah nelly! You're sending payloads to us too quickly. Slow it down! You will be disconnected on receiving this.")
+    elif op_code == Close_Event.SESSION_TIMED_OUT:
+        print("Your session timed out. Reconnect and start a new one.")
+    elif op_code == Close_Event.INVALID_SHARD:
+        print(" You sent us an invalid shard when identifying.")
+    elif op_code == Close_Event.SHARDING_REQUIRED:
+        print("The session would have handled too many guilds - you are required to shard your connection in order to connect.")
+    elif op_code == Close_Event.INVALID_API_VERSION:
+        print("You sent an invalid version for the gateway.")
+    elif op_code == Close_Event.INVALID_INTENTS:
+        print("You sent an invalid intent for a Gateway Intent. You may have incorrectly calculated the bitwise value.")
+    elif op_code == Close_Event.DISALLOWED_INTENTS:
+        print("You sent a disallowed intent for a Gateway Intent. You may have tried to specify an intent that you have not enabled or are not approved for.")
 
 
 def _Identify(ws):
@@ -272,6 +314,7 @@ def _Identify(ws):
 
     ws.send(json.dumps(data))
 
+
 def _Interactions(message):
     print(f"message in interactions {message}")
     username = message["d"]["member"]["user"]["username"]
@@ -280,16 +323,16 @@ def _Interactions(message):
     print(f"username: {username}")
     url = f"https://discord.com/api/v9/interactions/{interaction_id}/{interaction_token}/callback"
     print(message["d"]["data"]["name"])
-    user["username"] = username
 
     http_resp = None
     message_name = message["d"]["data"]["name"]
-    for k,v in user.items():
+    username = message["d"]["member"]["user"]["username"]
+    for k,v in commands.items():
         if message_name == k:
             data = {
                     "type": 4,
                     "data": {
-                        "content": v.replace("None", username)
+                        "content": v.replace("@username", username)
                     }
                 }
             print(f"data {data}")
@@ -298,20 +341,6 @@ def _Interactions(message):
 
     if http_resp == None:
         print("Command has not been registered.")
-    """
-    if message_name == "greetings":
-        data = {
-                "type": 4,
-                "data": {
-                    "content": "Greetings " + username
-                }
-            }
-        print(f"data {data}")
-        http_resp = _RequestHTTP("POST", url, data)
-        print(http_resp.data)
-    if http_resp == None:
-        print("Command has not been registered.")
-    """
 
 
 def _On_message(ws, message):
@@ -358,6 +387,7 @@ def _On_close(ws, close_status_code, close_msg):
     print("\nconnection closed")
     print(f"status: {close_status_code}")
     print(f"close message: {close_msg}\n")
+    os._exit(0)
 
 
 def _Connect():
@@ -382,14 +412,17 @@ def _Connect():
 
 def Connect(token, api, guild=None):
     #websocket.enableTrace(True)
-    global _token
-    global _api
-    global _guild
-    _token = token
-    _api = api
-    _guild = guild
+    if token is not None or api is not None:
+        global _token
+        global _api
+        global _guild
+        _token = token
+        _api = api
+        _guild = guild
 
-    Thread(target=_Connect, daemon=True).start()
+        Thread(target=_Connect, daemon=True).start()
+    else:
+        print("Token and api key are required.")
 
 
 def _Keep_alive():
@@ -401,14 +434,12 @@ def _Keep_alive():
 
 
 def Main(func):
-    print("main")
-    def wrapper(*arg, **kwargs):
-        func()
+    if _token is not None or _api is not None: 
+        def wrapper(*arg, **kwargs):
+            func()
 
-    return wrapper(), _Keep_alive()
+        return wrapper(), _Keep_alive()
+    else:
+        print("You are not connected.")
 
-
-
-#if __name__ == "__main__":
-#    Connect()
 

@@ -5,9 +5,9 @@ token = "Bot " + os.getenv("DISCORD_TOKEN")
 api = os.getenv("DISCORD_API")
 guild = os.getenv("DISCORD_GUILD")
 
-Discord.user["greetings"] = "Greetings " + str(Discord.user["username"])
-Discord.user["bye"] = "Bye " + str(Discord.user["username"])
-Discord.user["hi"] = "Hi there " + str(Discord.user["username"])
+Discord.commands["greetings"] = "Greetings @username"
+Discord.commands["bye"] = "Bye @username"
+Discord.commands["hi"] = "Hi there @username"
 Discord.Connect(token, api, guild)
 
 @Discord.Main
