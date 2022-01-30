@@ -44,23 +44,24 @@ class Close_Event(IntEnum):
     DISALLOWED_INTENTS    = 4014
 
 
-class Intents(IntEnum):
-    GUILDS                    = 1
-    GUILD_MEMBERS             = 2
-    GUILD_BANS                = 4
-    GUILD_EMOJIS_AND_STICKERS = 8
-    GUILD_INTEGRATIONS        = 16
-    GUILD_WEBHOOKS            = 32
-    GUILD_INVITES             = 64
-    GUILD_VOICE_STATES        = 128
-    GUILD_PRESENCES           = 256
-    GUILD_MESSAGES            = 512
-    GUILD_MESSAGE_REACTIONS   = 1024
-    GUILD_MESSAGE_TYPING      = 2048
-    DIRECT_MESSAGES           = 4096
-    DIRECT_MESSAGE_REACTIONS  = 8192
-    DIRECT_MESSAGE_TYPING     = 16384
-    GUILD_SCHEDULED_EVENTS    = 32768
+Intents_Token = {
+    "GUILDS"                    : 1,
+    "GUILD_MEMBERS"             : 2,
+    "GUILD_BANS"                : 4,
+    "GUILD_EMOJIS_AND_STICKERS" : 8,
+    "GUILD_INTEGRATIONS"        : 16,
+    "GUILD_WEBHOOKS"            : 32,
+    "GUILD_INVITES"             : 64,
+    "GUILD_VOICE_STATES"        : 128,
+    "GUILD_PRESENCES"           : 256,
+    "GUILD_MESSAGES"            : 512,
+    "GUILD_MESSAGE_REACTIONS"   : 1024,
+    "GUILD_MESSAGE_TYPING"      : 2048,
+    "DIRECT_MESSAGES"           : 4096,
+    "DIRECT_MESSAGE_REACTIONS"  : 8192,
+    "DIRECT_MESSAGE_TYPING"     : 16384,
+    "GUILD_SCHEDULED_EVENTS"    : 32768
+    }
 
 _http = urllib3.PoolManager()
 
@@ -82,6 +83,7 @@ _ack_heartbeat = None
 
 
 commands = {}
+intents_flag = 0
 
 
 def _Interrupt(signal, frame):
@@ -144,7 +146,7 @@ def _RequestHTTP(method, url, data=None):
         return resp
 
 
-def Register(name, description, message, command_type=1, url=None):
+def Register(name, description, message=None, command_type=1, url=None):
     print(url)
     if url == None:
         url = f"https://discord.com/api/v9/applications/{_api}/guilds/{_guild}/commands"
@@ -153,12 +155,48 @@ def Register(name, description, message, command_type=1, url=None):
             "Authorization": _token,
             "Content-Type": "application/json"
     }
-    data = {
-            "name": name,
-            "type": command_type,
-            "description": description,
-            "value": message
-    }
+
+    # Command with options and choices.
+    if type(description) == list:
+        data = {
+                "name": name[0],
+                "type": command_type,
+                "description": description[0]
+        }
+
+        name_index = 1
+        p = data
+        # Construct options structure.
+        # Only support 1 options structure for now.
+        for i in range(1, len(description)):
+            p["options"] = [{
+                    "name": name[i],
+                    "type": 3, # String
+                    "description": description[i],
+                    "required": True
+            }]
+
+            data = p
+            #p = p["options"]
+            name_index += 1
+        data["options"][0]["choices"] = []
+        #print(f"{data=}")
+        j = 0
+        for i in range(name_index, len(name)):
+            data["options"][0]["choices"].append({})
+            data["options"][0]["choices"][j]["name"] = name[i]
+            data["options"][0]["choices"][j]["value"] = message[j]
+            j += 1
+
+        #print(f"{data=}")
+
+    # Standard slash command.
+    else:
+        data = {
+                "name": name,
+                "type": command_type,
+                "description": description
+        }
     data_encoded = json.dumps(data)
     resp = _http.request(
             "POST",
@@ -303,7 +341,7 @@ def _Identify(ws):
             "op": int(Op_Code.IDENTIFY),
             "d": {
                 "token": _token,
-                "intents": 8,
+                "intents": intents_flag,
                 "properties": {
                     "$os": "windows",
                     "$browser": "fun",
@@ -329,15 +367,37 @@ def _Interactions(message):
     username = message["d"]["member"]["user"]["username"]
     for k,v in commands.items():
         if message_name == k:
-            data = {
-                    "type": 4,
-                    "data": {
-                        "content": v.replace("@username", username)
+            print(f"{k=} {v=}")
+            if type(v) == list:
+                if len(v[0]) >= 4:
+                    if v[0][0:4] == "func":
+                        ret = v[1]((v[0][4::].replace("@value", message["d"]["data"]["options"][0]["value"])))
+                        data = {
+                                "type": 4,
+                                "data": {
+                                    "content": ret
+                                }
+                            }
+
+                    else:
+                        print("Command[0] does not contain func keyword.")
+                        break
+
+                else:
+                    print("Command[0] must contain func keyword.")
+                    break
+
+            else:
+                data = {
+                        "type": 4,
+                        "data": {
+                            "content": v.replace("@username", username)
+                        }
                     }
-                }
             print(f"data {data}")
             http_resp = _RequestHTTP("POST", url, data)
             print(http_resp.data)
+            break
 
     if http_resp == None:
         print("Command has not been registered.")
@@ -410,7 +470,7 @@ def _Connect():
     Connection.ws.run_forever()
 
 
-def Connect(token, api, guild=None):
+def Connect(token, api, guild=None, intents=None):
     #websocket.enableTrace(True)
     if token is not None or api is not None:
         global _token
@@ -420,9 +480,22 @@ def Connect(token, api, guild=None):
         _api = api
         _guild = guild
 
+        global intents_flag
+        if type(intents) == list:
+            for n in intents:
+                if n in Intents_Token:
+                    intents_flag += Intents_Token[n]
+
+        elif intents is not None:
+            print("Intents must be an array.")
+            os._exit(0)
+
+        print(f"{intents_flag=}")
+
         Thread(target=_Connect, daemon=True).start()
     else:
         print("Token and api key are required.")
+        os._exit(0)
 
 
 def _Keep_alive():
@@ -435,7 +508,7 @@ def _Keep_alive():
 
 def Main(func):
     if _token is not None or _api is not None: 
-        def wrapper(*arg, **kwargs):
+        def wrapper(*args, **kwargs):
             func()
 
         return wrapper(), _Keep_alive()
