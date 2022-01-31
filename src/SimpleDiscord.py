@@ -9,6 +9,7 @@ import zlib
 from enum  import IntEnum
 from dataclasses import dataclass
 import io
+import re
 
 
 # Discord opcodes
@@ -84,6 +85,11 @@ _ack_heartbeat = None
 
 commands = {}
 intents_flag = 0
+
+bot_name = None
+
+banned_words = None
+banned_words_reaction = {}
 
 
 def _Interrupt(signal, frame):
@@ -402,14 +408,75 @@ def _Interactions(message):
     if http_resp == None:
         print("Command has not been registered.")
 
+# This function checks the message content as opposed to the name.
+# This will become a privilige in April of 2022 for bots that are in more than 75 servers.
+# Note: GUILD_MESSAGES intents needs to be specified when identifying to trigger this function.
+
+def _Message_content(message):
+    channel_id = message["d"]["channel_id"]
+    username = message["d"]["author"]["username"]
+    content = message["d"]["content"]
+    message_id = message["d"]["id"]
+    print(f"username: {username}")
+    print(f"channel_id: {channel_id}")
+    print(f"content: {content}")
+
+    url = f"https://discord.com/api/v9/channels/{channel_id}/messages"
+    url_delete = f"https://discord.com/api/v9/channels/{channel_id}/messages/{message_id}"
+    data = None
+
+    for k,v in banned_words.items():
+        for word in v:
+            # Very naive checker.
+            if re.search(word, content.lower()):
+                print("bad word found")
+                print(f"language: {k}")
+                if k == "English":
+                    if k in banned_words_reaction:
+                        data = {
+                                "content": banned_words_reaction[k]
+                        }
+                    else:
+                        print("Found {lang} bad word, but no reaction defined.")
+
+                elif k == "Turkish":
+                    if k in banned_words_reaction:
+                        data = {
+                                "content": banned_words_reaction[k]
+                        }
+                    else:
+                        print("Found {lang} bad word, but no reaction defined.")
+                elif k == "Dutch":
+                    if k in banned_words_reaction:
+                        data = {
+                                "content": banned_words_reaction[k]
+                        }
+                    else:
+                        print("Found {lang} bad word, but no reaction defined.")
+
+                break
+
+    if data is not None:
+        http_resp = _RequestHTTP("POST", url, data)
+        print(http_resp.data)
+        http_resp = _RequestHTTP("DELETE", url_delete)
+        print(http_resp.data)
+    else:
+        print("No banned words found")
+
 
 def _On_message(ws, message):
     #print(ws)
     message_d = json.loads(message)
     print(f"message: {message_d}")
     
-    if message_d["t"] == "INTERACTION_CREATE":
+    if message_d["t"] == "READY":
+        global bot_name
+        bot_name = message_d["d"]["user"]["username"]
+    elif message_d["t"] == "INTERACTION_CREATE":
         Thread(target=_Interactions, args=(message_d,)).start()
+    elif message_d["t"] == "MESSAGE_CREATE" and message_d["d"]["author"]["username"] != bot_name:
+        Thread(target=_Message_content, args=(message_d,)).start()
     else:
         op_code = None
         seq = message_d["s"]
@@ -489,6 +556,10 @@ def Connect(token, api, guild=None, intents=None):
         elif intents is not None:
             print("Intents must be an array.")
             os._exit(0)
+
+        if intents_flag == 0:
+            # Intents is required upon identifying, so the default is GUILDS.
+            intents_flag = 1
 
         print(f"{intents_flag=}")
 

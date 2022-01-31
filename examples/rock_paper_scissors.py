@@ -1,3 +1,6 @@
+# TODO: Package SimpleDiscord module to import it regardless of location.
+# As of now the module needs to be inside the same folder of the corresponding script.
+
 import SimpleDiscord as Discord
 import os
 from random import randint
@@ -33,7 +36,7 @@ def Rpc(user):
         return f"You picked: {user},\n I picked: {bot_pick},\n you win!"
 
 Discord.commands["rpc"] = ["func@value", Rpc]
-Discord.Connect(token, api, guild, ["GUILDS", "GUILD_MEMBERS", "GUILD_BANS", "GUILD_MESSAGES"])
+Discord.Connect(token, api, guild)
 
 print(Discord.commands)
 @Discord.Main

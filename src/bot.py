@@ -36,10 +36,31 @@ def Rpc(user):
         return f"You picked: {user},\n I picked: {bot_pick},\n you win!"
 
 Discord.commands["rpc"] = ["func@value", Rpc]
+
+bad_words = {}
+with open("bad_words.txt", "r", encoding="utf-8") as f:
+    lang = None
+    for line in f:
+        if line[0].isupper():
+            lang = line.strip()
+        elif lang is not None and line != "\n":
+            if lang not in bad_words:
+                bad_words[lang] = [line.strip()]
+            else:
+                bad_words[lang].append(line.strip())
+            
+#print(bad_words)
+Discord.banned_words = bad_words
+Discord.banned_words_reaction["English"] = "Careful there, mind your language!"
+Discord.banned_words_reaction["Turkish"] = "Hoop dedik kardesim, yavas ol!"
+Discord.banned_words_reaction["Dutch"] = "Hey hey, geen gescheld!"
+
 Discord.Connect(token, api, guild, ["GUILDS", "GUILD_MEMBERS", "GUILD_BANS", "GUILD_MESSAGES"])
+
 
 print(Discord.commands)
 @Discord.Main
 def Bot():
-    Discord.Register(["rpc", "play", "Rock", "Paper", "Scissors"], ["Rock, Paper, Scissors", "Play Rock, Paper, Scissors"], ["Rock", "Paper", "Scissors"])
-    Discord.Slash_commands()
+    pass
+    #Discord.Register(["rpc", "play", "Rock", "Paper", "Scissors"], ["Rock, Paper, Scissors", "Play Rock, Paper, Scissors"], ["Rock", "Paper", "Scissors"])
+    #Discord.Slash_commands()
