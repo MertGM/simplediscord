@@ -10,7 +10,7 @@ This library is made to be as simple as possible with minimal external libraries
 ```bash
 
 python3 -m pip install --upgrade build
-python3 -m pip install git+https://github.com/MertGM/simplediscord
+python3 -m pip install git+https://github.com/MertGM/simplediscord.git
 
 # Development install
 git clone https://github.com/MertGM/simplediscord 
@@ -25,7 +25,7 @@ python3 -m pip install dist/SimpleDiscord-version.wz or tar
 ```shell
 
 py -m pip install --upgrade build
-py -m pip install git+https://github.com/MertGM/SimpleDiscord.git
+py -m pip install git+https://github.com/MertGM/simplediscord.git
 
 # Development install
 git clone https://github.com/MertGM/simplediscord
@@ -150,6 +150,6 @@ Discord.Connect(token, api, guild, ["GUILD_MESSAGES"])
 # TODOs
 
 * Unit tests
-* Logging enabled when program is envoked for developing
+* Logging enabled when program is invoked for developing
 * Send compressed data to Discord's server
 * Format complex data structures nicely (e.g dict arrays) in logging library
