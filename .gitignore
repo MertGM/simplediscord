@@ -1,5 +1,6 @@
-venv/
+venv
 url.txt
-src/url.txt
-src/__pycache__/
+dist
+*.egg-info
+__pycache__
 bad_words.txt

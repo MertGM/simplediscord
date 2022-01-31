@@ -2,7 +2,7 @@
 # As of now the module needs to be inside the same folder of the corresponding script.
 
 import os
-import SimpleDiscord as Discord
+from simplediscord import SimpleDiscord as Discord
 
 token = "Bot " + os.getenv("DISCORD_TOKEN")
 api = os.getenv("DISCORD_API")
