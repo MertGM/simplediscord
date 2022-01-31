@@ -1,6 +1,6 @@
 # A simple Discord API wrapper
 
-Create slash commands with and without parameters, and delete user generated text which contain words specified in a file from the server.
+Create slash commands with and without parameters, and delete user generated text that contain specified words.
 This library is made to be as simple as possible with minimal external libraries used.
 
 # Installation
@@ -10,11 +10,11 @@ This library is made to be as simple as possible with minimal external libraries
 ```bash
 
 python3 -m pip install --upgrade build
-python3 -m pip install git+https://github.com/MertGM/SimpleDiscord.git --upgrade
+python3 -m pip install git+https://github.com/MertGM/simplediscord
 
-# Development install 
-git clone https://github.com/MertGM/SimpleDiscord.git
-cd SimpleDiscord
+# Development install
+git clone https://github.com/MertGM/simplediscord 
+cd simplediscord
 python3 -m build
 python3 -m pip install dist/SimpleDiscord-version.wz or tar
 
@@ -25,11 +25,11 @@ python3 -m pip install dist/SimpleDiscord-version.wz or tar
 ```shell
 
 py -m pip install --upgrade build
-py -m pip install git+https://github.com/MertGM/SimpleDiscord.git --upgrade
+py -m pip install git+https://github.com/MertGM/SimpleDiscord.git
 
-# Development install 
-git clone https://github.com/MertGM/SimpleDiscord.git
-cd SimpleDiscord
+# Development install
+git clone https://github.com/MertGM/simplediscord
+cd simplediscord
 py -m build
 py -m pip install dist/SimpleDiscord-version.wz or tar
 
