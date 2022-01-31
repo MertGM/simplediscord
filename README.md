@@ -146,3 +146,10 @@ Discord.banned_words_reaction["Dutch"] = "Hey hey, geen gescheld!"
 Discord.Connect(token, api, guild, ["GUILD_MESSAGES"])
 
 ```
+
+# TODOs
+
+* Unit tests
+* Logging enabled when program is envoked for developing
+* Send compressed data to Discord's server
+* Format complex data structures nicely (e.g dict arrays) in logging library

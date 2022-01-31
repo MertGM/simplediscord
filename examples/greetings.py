@@ -1,6 +1,3 @@
-# TODO: Package SimpleDiscord module to import it regardless of location.
-# As of now the module needs to be inside the same folder of the corresponding script.
-
 from simplediscord import SimpleDiscord as Discord
 import os
 
