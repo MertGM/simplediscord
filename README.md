@@ -5,7 +5,7 @@ This library is made to be as simple as possible with minimal external libraries
 
 # Installation
 
-## Linux
+## Unix/macOS
 
 ```bash
 
