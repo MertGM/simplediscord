@@ -5,10 +5,10 @@ from threading import Thread
 import signal
 import websocket
 import time
-import zlib
+#import zlib
 from enum  import IntEnum
 from dataclasses import dataclass
-import io
+#import io
 import re
 
 
@@ -135,9 +135,9 @@ def _RequestHTTP(method, url, data=None):
     #print("request called")
 
     if data is not None:
-        print(f"data not None")
+        #print(f"data not None")
         data_encoded = json.dumps(data)
-        print(f"data encoded {data}")
+        #print(f"data encoded {data}")
         resp = _http.request(
                 method,
                 url,
@@ -153,7 +153,7 @@ def _RequestHTTP(method, url, data=None):
 
 
 def Register(name, description, message=None, command_type=1, url=None):
-    print(url)
+    #print(url)
     if url == None:
         url = f"https://discord.com/api/v9/applications/{_api}/guilds/{_guild}/commands"
 
@@ -212,12 +212,10 @@ def Register(name, description, message=None, command_type=1, url=None):
 
     resp.auto_close = False
     if resp.status == 200 or resp.status == 201:
-        print("Registered bot commands:")
-        print(resp.status, resp.reason)
+        print(f"Successfully Registered bot command: {name}")
+        #print(resp.data)
         #for line in io.TextIOWrapper(resp):
         #    print(line)
-        print()
-        print(resp.data)
         #for k,v in resp.headers.items():
         #    print(f"{k}: {v}")
 
@@ -247,9 +245,8 @@ def Slash_commands(url=None):
     resp.auto_close = False
     if resp.status == 200 or resp.status == 304:
         print("Registered bot commands:")
-        print(resp.status, resp.reason)
-        print()
         print(resp.data)
+        #print()
         #for k,v in resp.headers.items():
         #    print(f"{k}: {v}")
 
@@ -265,7 +262,7 @@ def Slash_commands(url=None):
 def _Event_handler(ws, op_code, seq, message):
     global _ack_heartbeat
     if op_code == Op_Code.HEARTBEAT:
-        print("Send heartbeat")
+        #print("Send heartbeat")
         data = {
                 "op": int(Op_Code.HEARTBEAT),
                 "d": seq
@@ -273,18 +270,20 @@ def _Event_handler(ws, op_code, seq, message):
         ws.send(json.dumps(data))
 
     elif op_code == Op_Code.HEARTBEAT_ACK:
-        print("ACK heartbeat")
+        #print("ACK heartbeat")
         _ack_heartbeat = True
     elif op_code == Op_Code.DISPATCH:
-        print("Message dispatched")
+        pass
+        #print("Message dispatched")
     elif op_code == Op_Code.RECONNECT:
         _Reconnect()
     elif op_code == Op_Code.INVALID_SESSION:
         # Discord sends this op code if it's down, so according to the docs I should continue to heartbeat.
+        # This could be ambiguous and thus behave incorrectly.
         print("Discord is down, waiting untill it's up...")
         _ack_heartbeat = True
     elif op_code == Op_Code.HELLO:
-        print("Got a hello request")
+        #print("Got a hello request")
         def Send_heartbeat(ws, _loop_heartbeat):
             while _loop_heartbeat is True:
                 global _ack_heartbeat
@@ -292,7 +291,7 @@ def _Event_handler(ws, op_code, seq, message):
                     # Only check for ack of heartbeat if connection is established which includes sending a heartbeat once.
                     if _ack_heartbeat is True:
                         _ack_heartbeat = False
-                    print("Send heartbeat interval")
+                    #print("Send heartbeat interval")
                     data = {
                             "op": int(Op_Code.HEARTBEAT),
                             "d": seq
@@ -360,20 +359,19 @@ def _Identify(ws):
 
 
 def _Interactions(message):
-    print(f"message in interactions {message}")
     username = message["d"]["member"]["user"]["username"]
     interaction_token = message["d"]["token"]
     interaction_id = message["d"]["id"]
-    print(f"username: {username}")
+    #print(f"username: {username}")
     url = f"https://discord.com/api/v9/interactions/{interaction_id}/{interaction_token}/callback"
-    print(message["d"]["data"]["name"])
+    #print(message["d"]["data"]["name"])
 
     http_resp = None
     message_name = message["d"]["data"]["name"]
     username = message["d"]["member"]["user"]["username"]
     for k,v in commands.items():
         if message_name == k:
-            print(f"{k=} {v=}")
+            #print(f"{k=} {v=}")
             if type(v) == list:
                 if len(v[0]) >= 4:
                     if v[0][0:4] == "func":
@@ -400,9 +398,9 @@ def _Interactions(message):
                             "content": v.replace("@username", username)
                         }
                     }
-            print(f"data {data}")
+            #print(f"data {data}")
             http_resp = _RequestHTTP("POST", url, data)
-            print(http_resp.data)
+            #print(http_resp.data)
             break
 
     if http_resp == None:
@@ -417,9 +415,9 @@ def _Message_content(message):
     username = message["d"]["author"]["username"]
     content = message["d"]["content"]
     message_id = message["d"]["id"]
-    print(f"username: {username}")
-    print(f"channel_id: {channel_id}")
-    print(f"content: {content}")
+    #print(f"username: {username}")
+    #print(f"channel_id: {channel_id}")
+    #print(f"content: {content}")
 
     url = f"https://discord.com/api/v9/channels/{channel_id}/messages"
     url_delete = f"https://discord.com/api/v9/channels/{channel_id}/messages/{message_id}"
@@ -429,8 +427,8 @@ def _Message_content(message):
         for word in v:
             # Very naive checker.
             if re.search(word, content.lower()):
-                print("bad word found")
-                print(f"language: {k}")
+                #print("bad word found")
+                #print(f"language: {k}")
                 if k == "English":
                     if k in banned_words_reaction:
                         data = {
@@ -458,17 +456,17 @@ def _Message_content(message):
 
     if data is not None:
         http_resp = _RequestHTTP("POST", url, data)
-        print(http_resp.data)
+        #print(http_resp.data)
         http_resp = _RequestHTTP("DELETE", url_delete)
-        print(http_resp.data)
-    else:
-        print("No banned words found")
+        #print(http_resp.data)
+    #else:
+        #print("No banned words found")
 
 
 def _On_message(ws, message):
     #print(ws)
     message_d = json.loads(message)
-    print(f"message: {message_d}")
+    #print(f"message: {message_d}")
     
     if message_d["t"] == "READY":
         global bot_name
@@ -485,12 +483,12 @@ def _On_message(ws, message):
             if message_d["d"] is not None or message_d["d"] is not False and "heartbeat_interval" in message["d"]:
                 Connection.interval = int((message_d["d"]["heartbeat_interval"]) / 1000)
 
-        print(f"interval: {Connection.interval}")
-        print(f"seq {seq}")
+        #print(f"interval: {Connection.interval}")
+        #print(f"seq {seq}")
 
         # Op code will most likely always be in the response.
         op_code = message_d["op"]
-        print(f"op code: {op_code}")
+        #print(f"op code: {op_code}")
 
 
         _Event_handler(ws, op_code, seq, message)
@@ -502,18 +500,22 @@ def _On_message(ws, message):
 
 
 def _On_open(ws):
-    print("connected")
-    print(f"gateway {Connection.wss}\n")
+    print("Connected")
+    #print(f"gateway {Connection.wss}\n")
 
 
+# Error gets fired even though no errors have been found,
+# I assume this bug is due to executing the websocket.forever function in a different thread.
 def _On_error(ws, error):
-    print(error)
+    pass
+    #print("Error")
+    #print(error)
 
 
 def _On_close(ws, close_status_code, close_msg):
-    print("\nconnection closed")
-    print(f"status: {close_status_code}")
-    print(f"close message: {close_msg}\n")
+    print("\nConnection closed")
+    print(f"Status: {close_status_code}")
+    print(f"Close message: {close_msg}\n")
     os._exit(0)
 
 
@@ -521,14 +523,14 @@ def _Connect():
     if Connection.wss is None:
         # Create a file if gateway is not already cached
         if os.path.isfile("url.txt") is False: 
-            print("Gateway is not cached yet")
+            #print("Gateway is not cached yet")
             url = "https://discord.com/api/v9/gateway/bot"
             resp = _RequestHTTP("GET", url)
             Connection.wss = ((json.loads(resp.data)["url"]) + "?v=9&encoding=json")
             with open("url.txt", "w") as f:
                 f.write(Connection.wss)
         else:
-            print("Got the cached gateway")
+            #print("Got the cached gateway")
             with open("url.txt", "r") as f:
                 Connection.wss = f.readline().strip("\n")
 
@@ -561,7 +563,7 @@ def Connect(token, api, guild=None, intents=None):
             # Intents is required upon identifying, so the default is GUILDS.
             intents_flag = 1
 
-        print(f"{intents_flag=}")
+        #print(f"{intents_flag=}")
 
         Thread(target=_Connect, daemon=True).start()
     else:
