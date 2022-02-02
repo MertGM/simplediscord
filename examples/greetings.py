@@ -12,5 +12,7 @@ Discord.Connect(token, api, guild)
 
 @Discord.Main
 def Bot():
-    Discord.Register("hi", "say hi", "hi")
+    Discord.Register("hi", "say hi")
+    Discord.Register("greetings", "say greetings")
+    Discord.Register("bye", "say bye")
     Discord.Slash_commands()

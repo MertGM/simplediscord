@@ -35,6 +35,17 @@ py -m pip install dist/SimpleDiscord-version.wz or tar
 
 ```
 
+# Setting up a bot
+
+To create a bot you need to go to the discord's application page at: https://discord.com/developers/applications.
+After creating an application go to the Bot section in settings.
+1. If you want to filter messages in your server, then tick 'message content intent' on.
+2. Set up your bot's permission according to your needs, or set it to 'Administrator' to have everything you can.
+3. Go to OAuth > URL Generator in the settings and enable 'bot' and 'applications.commands',
+copy the generated url and paste.
+
+And you're done!
+
 # Examples 
 
 ## Greetings

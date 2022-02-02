@@ -14,22 +14,15 @@ def Rpc(user):
     bot = a[n]
     bot_pick = elements[n]
 
-    print("bot picked: " + bot)
-    print("user picked: " + user)
     if bot == "r" and user[0].lower() == "s":
-        print("Bot wins!")
         return f"You picked: {user},\n I picked: {bot_pick},\n I win!"
     elif bot == "p" and user[0].lower() == "r":
-        print("Bot wins!")
         return f"You picked: {user},\n I picked: {bot_pick},\n I win!"
     elif bot == "s" and user[0].lower() == "p":
-        print("Bot wins!")
         return f"You picked: {user},\n I picked: {bot_pick},\n I win!"
     elif bot == user[0].lower():
-        print("Tie!")
         return f"You picked: {user},\n I picked: {bot_pick},\n we tie!"
     else:
-        print("User wins!")
         return f"You picked: {user},\n I picked: {bot_pick},\n you win!"
 
 Discord.commands["rpc"] = ["func@value", Rpc]

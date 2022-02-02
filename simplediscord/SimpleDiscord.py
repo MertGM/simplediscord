@@ -259,6 +259,16 @@ def Slash_commands(url=None):
         #    print(f"{k}: {v}")
 
 
+def Change_username(username):
+    url = "https://discord.com/api/users/@me"
+    data = {
+            "username": username
+    }
+    resp = _RequestHTTP("PATCH", url, data)
+    if resp.status != 200:
+        print(resp.status, resp.reason)
+    #print(resp.status, resp.reason)
+
 def _Event_handler(ws, op_code, seq, message):
     global _ack_heartbeat
     if op_code == Op_Code.HEARTBEAT:
@@ -578,10 +588,12 @@ def _Keep_alive():
     while True:
         pass
 
-
+# Entry point to all bot applications, this function is required to keep the program running execute user defined functions.
 def Main(func):
     if _token is not None or _api is not None: 
         def wrapper(*args, **kwargs):
+            # Bug-fatal: calling this too many times could cause a too many request error, 
+            # and having this error too many times causes your token to be revoked; thus your bot disabled.
             func()
 
         return wrapper(), _Keep_alive()
