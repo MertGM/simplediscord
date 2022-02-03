@@ -67,7 +67,9 @@ Discord.Connect(token, api, guild)
 
 @Discord.Main
 def Bot():
-    Discord.Register("hi", "say hi", "hi")
+    Discord.Register("hi", "say hi")
+    Discord.Register("greetings", "say greetings")
+    Discord.Register("bye", "say bye")
     Discord.Slash_commands()
 
 ```
@@ -134,10 +136,7 @@ guild = os.getenv("DISCORD_GUILD")
 
 bad_words = {}
 
-# Create file or specify a dict containing exactly as so:
-# First letter uppercase is identified as language.
-# lower case words are the comparison words.
-
+# When modifying: make sure the language keyword begins with an uppercase and the words are all lowercased.
 with open("bad_words.txt", "r", encoding="utf-8") as f:
     lang = None
     for line in f:
@@ -156,6 +155,10 @@ Discord.banned_words_reaction["Turkish"] = "Hoop dedik kardesim, yavas ol!"
 Discord.banned_words_reaction["Dutch"] = "Hey hey, geen gescheld!"
 
 Discord.Connect(token, api, guild, ["GUILD_MESSAGES"])
+
+@Discord.Main
+def Bot():
+    pass
 
 ```
 
