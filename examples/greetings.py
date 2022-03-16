@@ -10,6 +10,8 @@ Discord.commands["bye"] = "Bye @username"
 Discord.commands["hi"] = "Hi there @username"
 Discord.Connect(token, api, guild)
 
+Discord.Set_logger_level(Discord.LOGGER_DEBUG)
+
 @Discord.Main
 def Bot():
     Discord.Register("hi", "say hi")

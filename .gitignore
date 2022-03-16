@@ -1,6 +1,7 @@
-venv
+venv/
 url.txt
-dist
+dist/
 *.egg-info
 __pycache__
-bad_words.txt
+debug/
+bot.py

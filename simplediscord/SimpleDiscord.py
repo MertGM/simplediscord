@@ -10,7 +10,7 @@ from enum  import IntEnum
 from dataclasses import dataclass
 #import io
 import re
-
+from simplediscord.utils import mylogger
 
 # Discord opcodes
 class Op_Code(IntEnum):
@@ -71,6 +71,14 @@ _token = None
 _guild = None
 _api = None
 
+LOGGER_FATAL = mylogger.FATAL
+LOGGER_WARNING = mylogger.WARNING
+LOGGER_INFO = mylogger.INFO
+LOGGER_DEBUG = mylogger.DEBUG
+
+def Set_logger_level(level):
+    mylogger.level = level
+
 
 @dataclass
 class Connection:
@@ -88,7 +96,7 @@ intents_flag = 0
 
 bot_name = None
 
-banned_words = None
+banned_words = {}
 banned_words_reaction = {}
 
 
@@ -132,12 +140,12 @@ def _RequestHTTP(method, url, data=None):
         "Content-Type": "application/json",
         "Authorization": _token
     }
-    #print("request called")
+    mylogger.debug("request called")
 
     if data is not None:
-        #print(f"data not None")
+        mylogger.debug(f"data not None")
         data_encoded = json.dumps(data)
-        #print(f"data encoded {data}")
+        mylogger.debug(f"data encoded {data}")
         resp = _http.request(
                 method,
                 url,
@@ -153,7 +161,7 @@ def _RequestHTTP(method, url, data=None):
 
 
 def Register(name, description, message=None, command_type=1, url=None):
-    #print(url)
+    mylogger.debug(url)
     if url == None:
         url = f"https://discord.com/api/v9/applications/{_api}/guilds/{_guild}/commands"
 
@@ -186,7 +194,7 @@ def Register(name, description, message=None, command_type=1, url=None):
             #p = p["options"]
             name_index += 1
         data["options"][0]["choices"] = []
-        #print(f"{data=}")
+        mylogger.debug(f"{data=}")
         j = 0
         for i in range(name_index, len(name)):
             data["options"][0]["choices"].append({})
@@ -194,7 +202,7 @@ def Register(name, description, message=None, command_type=1, url=None):
             data["options"][0]["choices"][j]["value"] = message[j]
             j += 1
 
-        #print(f"{data=}")
+        mylogger.debug(f"{data=}")
 
     # Standard slash command.
     else:
@@ -212,20 +220,19 @@ def Register(name, description, message=None, command_type=1, url=None):
 
     resp.auto_close = False
     if resp.status == 200 or resp.status == 201:
-        print(f"Successfully Registered bot command: {name}")
-        #print(resp.data)
+        mylogger.debug(f"Successfully Registered bot command: {name}")
+        mylogger.debug(resp.data)
         #for line in io.TextIOWrapper(resp):
-        #    print(line)
+        #    mylogger.debug(line)
         #for k,v in resp.headers.items():
-        #    print(f"{k}: {v}")
+        #    mylogger.debug(f"{k}: {v}")
 
     else:
-        print(resp.status, resp.reason)
+        mylogger.debug(resp.status, resp.reason)
         #for line in io.TextIOWrapper(resp):
-        #    print(line)
-        #print()
+        #    mylogger.debug(line)
         #for k,v in resp.headers.items():
-        #    print(f"{k}: {v}")
+        #    mylogger.debug(f"{k}: {v}")
 
 
 def Slash_commands(url=None):
@@ -244,19 +251,17 @@ def Slash_commands(url=None):
 
     resp.auto_close = False
     if resp.status == 200 or resp.status == 304:
-        print("Registered bot commands:")
-        print(resp.data)
-        #print()
+        mylogger.debug("Registered bot commands:")
+        mylogger.debug(resp.data)
         #for k,v in resp.headers.items():
-        #    print(f"{k}: {v}")
+        #    mylogger.debug(f"{k}: {v}")
 
     else:
-        print(resp.status, resp.reason)
+        mylogger.debug(resp.status, resp.reason)
         #for line in io.TextIOWrapper(resp):
-        #    print(line)
-        #print()
+        #    mylogger.debug(line)
         #for k,v in resp.headers.items():
-        #    print(f"{k}: {v}")
+        #    mylogger.debug(f"{k}: {v}")
 
 
 def Change_username(username):
@@ -266,13 +271,37 @@ def Change_username(username):
     }
     resp = _RequestHTTP("PATCH", url, data)
     if resp.status != 200:
-        print(resp.status, resp.reason)
-    #print(resp.status, resp.reason)
+        mylogger.debug(resp.status, resp.reason)
+    mylogger.debug(resp.status, resp.reason)
+
+
+# The bot will delete a message containing word(s) from the dictionary in a channel, and warn the user.
+
+# File syntax is as follows:
+# Uppercase for specifying a language.
+# Lowercase adjacent to the language for words.
+
+def Filter(file):
+    try:
+        with open(file, "r", encoding="utf-8") as f:
+            lang = None
+            for line in f:
+                if line[0].isupper():
+                    lang = line.strip()
+                elif lang is not None and line != "\n":
+                    if lang not in banned_words:
+                        banned_words[lang] = [line.strip()]
+                    else:
+                        banned_words[lang].append(line.strip())
+    except FileNotFoundError:
+        mylogger.warning("Could not find file " + file)
+
+
 
 def _Event_handler(ws, op_code, seq, message):
     global _ack_heartbeat
     if op_code == Op_Code.HEARTBEAT:
-        #print("Send heartbeat")
+        mylogger.debug("Send heartbeat")
         data = {
                 "op": int(Op_Code.HEARTBEAT),
                 "d": seq
@@ -280,20 +309,20 @@ def _Event_handler(ws, op_code, seq, message):
         ws.send(json.dumps(data))
 
     elif op_code == Op_Code.HEARTBEAT_ACK:
-        #print("ACK heartbeat")
+        mylogger.debug("ACK heartbeat")
         _ack_heartbeat = True
     elif op_code == Op_Code.DISPATCH:
         pass
-        #print("Message dispatched")
+        mylogger.debug("Message dispatched")
     elif op_code == Op_Code.RECONNECT:
         _Reconnect()
     elif op_code == Op_Code.INVALID_SESSION:
         # Discord sends this op code if it's down, so according to the docs I should continue to heartbeat.
         # This could be ambiguous and thus behave incorrectly.
-        print("Discord is down, waiting untill it's up...")
+        mylogger.fatal("Discord is down, waiting untill it's up...")
         _ack_heartbeat = True
     elif op_code == Op_Code.HELLO:
-        #print("Got a hello request")
+        mylogger.debug("Got a hello request")
         def Send_heartbeat(ws, _loop_heartbeat):
             while _loop_heartbeat is True:
                 global _ack_heartbeat
@@ -301,7 +330,7 @@ def _Event_handler(ws, op_code, seq, message):
                     # Only check for ack of heartbeat if connection is established which includes sending a heartbeat once.
                     if _ack_heartbeat is True:
                         _ack_heartbeat = False
-                    #print("Send heartbeat interval")
+                    mylogger.debug("Send heartbeat interval")
                     data = {
                             "op": int(Op_Code.HEARTBEAT),
                             "d": seq
@@ -321,34 +350,47 @@ def _Event_handler(ws, op_code, seq, message):
 
     # Error messages according to Discord's api docs.
     elif op_code == Close_Event.UNKNOWN:
-        print("We're not sure what went wrong. Trying to reconnect...")
+        mylogger.fatal("We're not sure what went wrong. Trying to reconnect...")
         _Resume(ws, seq)
     elif op_code == Close_Event.UNKNOWN_OPCODE:
-        print("You sent an invalid Gateway opcode or an invalid payload for an opcode. Don't do that!")
+        mylogger.fatal("You sent an invalid Gateway opcode or an invalid payload for an opcode. Don't do that!")
+        os._exit(0)
     elif op_code == Close_Event.DECODE_ERROR:
-        print("You sent an invalid payload to us. Don't do that!")
+        mylogger.fatal("You sent an invalid payload to us. Don't do that!")
+        os._exit(0)
     elif op_code == Close_Event.NOT_AUTHENTICATED:
-        print("You sent us a payload prior to identifying.")
+        mylogger.fatal("You sent us a payload prior to identifying.")
+        os._exit(0)
     elif op_code == Close_Event.AUTHENTICATION_FAILED:
-        print("You sent an invalid payload to us. Don't do that!")
+        mylogger.fatal("You sent an invalid payload to us. Don't do that!")
+        os._exit(0)
     elif op_code == Close_Event.ALREADY_AUTHENTICATED:
-        print("You sent more than one identify payload. Don't do that!")
+        mylogger.fatal("You sent more than one identify payload. Don't do that!")
+        os._exit(0)
     elif op_code == Close_Event.INVALID_SEQ:
-        print("The account token sent with your identify payload is incorrect.")
+        mylogger.fatal("The account token sent with your identify payload is incorrect.")
+        os._exit(0)
     elif op_code == Close_Event.RATE_LIMITED:
-        print("Woah nelly! You're sending payloads to us too quickly. Slow it down! You will be disconnected on receiving this.")
+        mylogger.fatal("Woah nelly! You're sending payloads to us too quickly. Slow it down! You will be disconnected on receiving this.")
+        os._exit(0)
     elif op_code == Close_Event.SESSION_TIMED_OUT:
-        print("Your session timed out. Reconnect and start a new one.")
+        mylogger.fatal("Your session timed out. Reconnect and start a new one.")
+        os._exit(0)
     elif op_code == Close_Event.INVALID_SHARD:
-        print(" You sent us an invalid shard when identifying.")
+        mylogger.fatal(" You sent us an invalid shard when identifying.")
+        os._exit(0)
     elif op_code == Close_Event.SHARDING_REQUIRED:
-        print("The session would have handled too many guilds - you are required to shard your connection in order to connect.")
+        mylogger.fatal("The session would have handled too many guilds - you are required to shard your connection in order to connect.")
+        os._exit(0)
     elif op_code == Close_Event.INVALID_API_VERSION:
-        print("You sent an invalid version for the gateway.")
+        mylogger.fatal("You sent an invalid version for the gateway.")
+        os._exit(0)
     elif op_code == Close_Event.INVALID_INTENTS:
-        print("You sent an invalid intent for a Gateway Intent. You may have incorrectly calculated the bitwise value.")
+        mylogger.fatal("You sent an invalid intent for a Gateway Intent. You may have incorrectly calculated the bitwise value.")
+        os._exit(0)
     elif op_code == Close_Event.DISALLOWED_INTENTS:
-        print("You sent a disallowed intent for a Gateway Intent. You may have tried to specify an intent that you have not enabled or are not approved for.")
+        mylogger.fatal("You sent a disallowed intent for a Gateway Intent. You may have tried to specify an intent that you have not enabled or are not approved for.")
+        os._exit(0)
 
 
 def _Identify(ws):
@@ -370,21 +412,21 @@ def _Identify(ws):
 
 def _Interactions(message):
     username = message["d"]["member"]["user"]["username"]
+    message_name = message["d"]["data"]["name"]
     interaction_token = message["d"]["token"]
     interaction_id = message["d"]["id"]
-    #print(f"username: {username}")
+    mylogger.debug(f"username: {username}")
     url = f"https://discord.com/api/v9/interactions/{interaction_id}/{interaction_token}/callback"
-    #print(message["d"]["data"]["name"])
-
+    mylogger.debug(message["d"]["data"]["name"])
     http_resp = None
-    message_name = message["d"]["data"]["name"]
-    username = message["d"]["member"]["user"]["username"]
+
     for k,v in commands.items():
         if message_name == k:
-            #print(f"{k=} {v=}")
+            mylogger.debug(f"{k=} {v=}")
             if type(v) == list:
                 if len(v[0]) >= 4:
                     if v[0][0:4] == "func":
+                        # Call the user-defined function with the message value as arguments or no arguments if @value is not defined.
                         ret = v[1]((v[0][4::].replace("@value", message["d"]["data"]["options"][0]["value"])))
                         data = {
                                 "type": 4,
@@ -394,11 +436,11 @@ def _Interactions(message):
                             }
 
                     else:
-                        print("Command[0] does not contain func keyword.")
+                        mylogger.fatal("Command[0] does not contain func keyword.")
                         break
 
                 else:
-                    print("Command[0] must contain func keyword.")
+                    mylogger.fatal("Command[0] must contain func keyword.")
                     break
 
             else:
@@ -408,15 +450,16 @@ def _Interactions(message):
                             "content": v.replace("@username", username)
                         }
                     }
-            #print(f"data {data}")
+            mylogger.debug(f"data {data}")
             http_resp = _RequestHTTP("POST", url, data)
-            #print(http_resp.data)
+            mylogger.debug(http_resp.data)
             break
 
     if http_resp == None:
-        print("Command has not been registered.")
+        mylogger.warning("Command has not been registered.")
 
-# This function checks the message content as opposed to the name.
+
+# This function checks the message content as opposed to its name.
 # This will become a privilige in April of 2022 for bots that are in more than 75 servers.
 # Note: GUILD_MESSAGES intents needs to be specified when identifying to trigger this function.
 
@@ -425,9 +468,9 @@ def _Message_content(message):
     username = message["d"]["author"]["username"]
     content = message["d"]["content"]
     message_id = message["d"]["id"]
-    #print(f"username: {username}")
-    #print(f"channel_id: {channel_id}")
-    #print(f"content: {content}")
+    mylogger.debug(f"username: {username}")
+    mylogger.debug(f"channel_id: {channel_id}")
+    mylogger.debug(f"content: {content}")
 
     url = f"https://discord.com/api/v9/channels/{channel_id}/messages"
     url_delete = f"https://discord.com/api/v9/channels/{channel_id}/messages/{message_id}"
@@ -437,46 +480,27 @@ def _Message_content(message):
         for word in v:
             # Very naive checker.
             if re.search(word, content.lower()):
-                #print("bad word found")
-                #print(f"language: {k}")
-                if k == "English":
-                    if k in banned_words_reaction:
-                        data = {
-                                "content": banned_words_reaction[k]
-                        }
-                    else:
-                        print("Found {lang} bad word, but no reaction defined.")
-
-                elif k == "Turkish":
-                    if k in banned_words_reaction:
-                        data = {
-                                "content": banned_words_reaction[k]
-                        }
-                    else:
-                        print("Found {lang} bad word, but no reaction defined.")
-                elif k == "Dutch":
-                    if k in banned_words_reaction:
-                        data = {
-                                "content": banned_words_reaction[k]
-                        }
-                    else:
-                        print("Found {lang} bad word, but no reaction defined.")
-
+                mylogger.debug("bad word found")
+                mylogger.debug(f"language: {k}")
+                if k in banned_words_reaction:
+                    data = {
+                            "content": banned_words_reaction[k]
+                    }
+                else:
+                    mylogger.warning(f"Found {k} bad word, but no reaction defined.")
                 break
 
     if data is not None:
         http_resp = _RequestHTTP("POST", url, data)
-        #print(http_resp.data)
+        mylogger.debug(http_resp.data)
         http_resp = _RequestHTTP("DELETE", url_delete)
-        #print(http_resp.data)
-    #else:
-        #print("No banned words found")
+        mylogger.debug(http_resp.data)
 
 
 def _On_message(ws, message):
-    #print(ws)
+    mylogger.debug(ws)
     message_d = json.loads(message)
-    #print(f"message: {message_d}")
+    mylogger.debug(f"message: {message_d}")
     
     if message_d["t"] == "READY":
         global bot_name
@@ -493,12 +517,12 @@ def _On_message(ws, message):
             if message_d["d"] is not None or message_d["d"] is not False and "heartbeat_interval" in message["d"]:
                 Connection.interval = int((message_d["d"]["heartbeat_interval"]) / 1000)
 
-        #print(f"interval: {Connection.interval}")
-        #print(f"seq {seq}")
+        mylogger.debug(f"interval: {Connection.interval}")
+        mylogger.debug(f"seq {seq}")
 
         # Op code will most likely always be in the response.
         op_code = message_d["op"]
-        #print(f"op code: {op_code}")
+        mylogger.debug(f"op code: {op_code}")
 
 
         _Event_handler(ws, op_code, seq, message)
@@ -510,22 +534,20 @@ def _On_message(ws, message):
 
 
 def _On_open(ws):
-    print("Connected")
-    #print(f"gateway {Connection.wss}\n")
+    mylogger.info("Connected")
+    mylogger.debug(f"gateway {Connection.wss}\n")
 
 
 # Error gets fired even though no errors have been found,
 # I assume this bug is due to executing the websocket.forever function in a different thread.
 def _On_error(ws, error):
     pass
-    #print("Error")
-    #print(error)
 
 
 def _On_close(ws, close_status_code, close_msg):
-    print("\nConnection closed")
-    print(f"Status: {close_status_code}")
-    print(f"Close message: {close_msg}\n")
+    mylogger.info("\nConnection closed")
+    mylogger.debug(f"Status: {close_status_code}")
+    mylogger.debug(f"Close message: {close_msg}\n")
     os._exit(0)
 
 
@@ -533,14 +555,14 @@ def _Connect():
     if Connection.wss is None:
         # Create a file if gateway is not already cached
         if os.path.isfile("url.txt") is False: 
-            #print("Gateway is not cached yet")
+            mylogger.debug("Gateway is not cached yet")
             url = "https://discord.com/api/v9/gateway/bot"
             resp = _RequestHTTP("GET", url)
             Connection.wss = ((json.loads(resp.data)["url"]) + "?v=9&encoding=json")
             with open("url.txt", "w") as f:
                 f.write(Connection.wss)
         else:
-            #print("Got the cached gateway")
+            mylogger.debug("Got the cached gateway")
             with open("url.txt", "r") as f:
                 Connection.wss = f.readline().strip("\n")
 
@@ -566,18 +588,18 @@ def Connect(token, api, guild=None, intents=None):
                     intents_flag += Intents_Token[n]
 
         elif intents is not None:
-            print("Intents must be an array.")
+            mylogger.fatal("Intents must be an array.")
             os._exit(0)
 
         if intents_flag == 0:
             # Intents is required upon identifying, so the default is GUILDS.
             intents_flag = 1
 
-        #print(f"{intents_flag=}")
+        mylogger.debug(f"{intents_flag=}")
 
         Thread(target=_Connect, daemon=True).start()
     else:
-        print("Token and api key are required.")
+        mylogger.fatal("Token and api key are required.")
         os._exit(0)
 
 
@@ -598,6 +620,6 @@ def Main(func):
 
         return wrapper(), _Keep_alive()
     else:
-        print("You are not connected.")
+        mylogger.fatal("You are not connected.")
 
 
