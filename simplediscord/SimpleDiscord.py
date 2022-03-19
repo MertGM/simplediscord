@@ -14,17 +14,17 @@ from simplediscord.utils import mylogger
 
 # Discord opcodes
 class Op_Code(IntEnum):
-    DISPATCH = 0
-    HEARTBEAT = 1
-    IDENTIFY = 2
+    DISPATCH               = 0
+    HEARTBEAT              = 1
+    IDENTIFY               = 2
     UPDATE_CLIENT_PRESENCE = 3
-    VOICE_STATE_UPDATE = 4
-    RESUME_SESSION = 6
-    RECONNECT = 7
-    GUILD_MEMBERS = 8
-    INVALID_SESSION = 9
-    HELLO = 10
-    HEARTBEAT_ACK = 11
+    VOICE_STATE_UPDATE     = 4
+    RESUME_SESSION         = 6
+    RECONNECT              = 7
+    GUILD_MEMBERS          = 8
+    INVALID_SESSION        = 9
+    HELLO                  = 10
+    HEARTBEAT_ACK          = 11
 
 # Discord close events
 # Discord closes connection or sends invalid codes.
@@ -62,11 +62,10 @@ Intents_Token = {
     "DIRECT_MESSAGE_REACTIONS"  : 8192,
     "DIRECT_MESSAGE_TYPING"     : 16384,
     "GUILD_SCHEDULED_EVENTS"    : 32768
-    }
+}
 
 _http = urllib3.PoolManager()
 
-# Defined by the user
 _token = None
 _guild = None
 _api = None
