@@ -8,7 +8,7 @@ class Colors:
     blue  = "0;0;255m"
     cyan  = "0;255;255m"
     yellow  = "255;255;0m"
-    magenta  = "255;255;0m"
+    magenta  = "255;0;255m"
     spring_green = "0;255;127m"
     purple = "128;0;128m"
     corn_flower_blue = "100;149;237m"
