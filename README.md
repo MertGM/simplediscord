@@ -1,7 +1,7 @@
 # A simple Discord API wrapper
 
-Create slash commands with and without parameters, and delete user generated text that contain specified words.
-This library is made to be as simple as possible with minimal external libraries used.
+Create slash commands, and delete user generated text upon matching words in a specific file.
+This library is made to be as simple as possible with a 'minimal' amount of dependency.
 
 # Installation
 
@@ -16,7 +16,7 @@ python3 -m pip install git+https://github.com/MertGM/simplediscord.git
 git clone https://github.com/MertGM/simplediscord 
 cd simplediscord
 python3 -m build
-python3 -m pip install dist/SimpleDiscord-version.wz or tar
+python3 -m pip install SimpleDiscord-0.1.3-py3-none-any.whl or SimpleDiscord-0.1.3.tar.gz
 
 ```
 
@@ -31,17 +31,17 @@ py -m pip install git+https://github.com/MertGM/simplediscord.git
 git clone https://github.com/MertGM/simplediscord
 cd simplediscord
 py -m build
-py -m pip install dist/SimpleDiscord-version.wz or tar
+py -m pip install SimpleDiscord-0.1.3-py3-none-any.whl or SimpleDiscord-0.1.3.tar.gz
 
 ```
 
 # Setting up a bot
 
-To create a bot you need to go to the discord's application page at: https://discord.com/developers/applications.
+To create a bot, first create an application at: https://discord.com/developers/applications.
 After creating an application go to the Bot section in settings.
 1. If you want to filter messages in your server, then tick 'message content intent' on.
 2. Go to OAuth > URL Generator in the settings.
-3. Enable 'bot' and 'applications.commands' in scopes, set up your permissions according to your needs,
+3. Enable 'bot' and 'applications.commands' in scopes, set up your permissions according to your needs
 or choose 'Administrator' to have everything you can.
 4. Copy the generated url at the bottom and paste it in your search bar + enter.
 
@@ -55,6 +55,8 @@ And you're done!
 
 from simplediscord import SimpleDiscord as Discord
 import os
+
+# It is recommended to save your api key and token in a safe environment e.g: an environment variable.
 
 token = "Bot " + os.getenv("DISCORD_TOKEN")
 api = os.getenv("DISCORD_API")
@@ -74,7 +76,7 @@ def Bot():
 
 ```
 
-## Rock, Paper, Scissors
+## Rock Paper Scissors
 
 ```python
 
@@ -113,9 +115,12 @@ def Rpc(user):
         return f"You picked: {user},\n I picked: {bot_pick},\n you win!"
 
 Discord.commands["rpc"] = ["func@value", Rpc]
+
+
 Discord.Connect(token, api, guild)
 
 print(Discord.commands)
+
 @Discord.Main
 def Bot():
     Discord.Register(["rpc", "play", "Rock", "Paper", "Scissors"], ["Rock, Paper, Scissors", "Play Rock, Paper, Scissors"], ["Rock", "Paper", "Scissors"])
@@ -134,7 +139,7 @@ token = "Bot " + os.getenv("DISCORD_TOKEN")
 api = os.getenv("DISCORD_API")
 guild = os.getenv("DISCORD_GUILD")
 
-# When modifying: make sure the language keyword begins with an uppercase and the words are all lowercased.
+# When modifying: make sure the language keyword begins with an uppercase and the words are lowercased.
 Discord.Filter("bad_words.txt")
 Discord.banned_words_reaction["English"] = "Careful there, mind your language!"
 Discord.banned_words_reaction["Turkish"] = "Hoop dedik kardesim, yavas ol!"
@@ -148,8 +153,58 @@ def Bot():
 
 ```
 
+## Logger
+
+```python
+
+from simplediscord import SimpleDiscord as Discord
+from simplediscord.utils.colors import Color
+from simplediscord.utils.mylogger import logging_color
+
+token = "Bot " + os.getenv("DISCORD_TOKEN")
+api = os.getenv("DISCORD_API")
+guild = os.getenv("DISCORD_GUILD")
+
+# The logging level hierarchy is as the following:
+#
+# Debug
+# Info
+# Warning
+# Fatal
+# None
+#
+# Loggings with the specified level and subsequent will be triggered if set.
+
+Discord.SetLoggerLevel(Discord.LOGGER_DEBUG)
+
+# Enable Virtual Terminal Sequences if you're using cmd or PowerShell.
+#from simplediscord.utils.colors import EnableVT
+#EnableVT()
+
+# Change the foreground color.
+logging_color["fatal_fg"] = Color.red
+logging_color["info_fg"] = Color.green
+logging_color["warning_fg"] = Color.yellow
+logging_color["debug_fg"] = Color.corn_flower_blue
+
+# And background color if you wish.
+#logging_color["fatal_bg"] = Color.blue
+#logging_color["info_bg"] = Color.purple
+#logging_color["warning_bg"] = Color.magenta
+#logging_color["debug_bg"] = Color.black
+
+# For more colors see the colors.py file, to see the currently supported colors.
+
+
+Discord.Connect(token, api, guild, ["GUILD_MESSAGES"])
+
+@Discord.Main
+def Bot():
+    pass
+
+```
+
 # TODOs
 
 * Unit tests
 * Send compressed data to Discord's server
-* Format complex data structures nicely (e.g dict arrays) in logging library

@@ -8,7 +8,6 @@ import time
 #import zlib
 from enum  import IntEnum
 from dataclasses import dataclass
-#import io
 import re
 from simplediscord.utils import mylogger
 
@@ -75,14 +74,14 @@ LOGGER_WARNING = mylogger.WARNING
 LOGGER_INFO = mylogger.INFO
 LOGGER_DEBUG = mylogger.DEBUG
 
-def Set_logger_level(level):
+def SetLoggerLevel(level):
     mylogger.level = level
 
 
 @dataclass
 class Connection:
     ws = None
-    wss = None
+    url = None
     interval = None
     identified = False
 
@@ -141,7 +140,7 @@ def _RequestHTTP(method, url, data=None):
     }
     mylogger.debug("request called")
 
-    if data is not None:
+    if data:
         mylogger.debug(f"data not None")
         data_encoded = json.dumps(data)
         mylogger.debug(f"data encoded {data}")
@@ -169,7 +168,7 @@ def Register(name, description, message=None, command_type=1, url=None):
             "Content-Type": "application/json"
     }
 
-    # Command with options and choices.
+    # Slash command with options and choices.
     if type(description) == list:
         data = {
                 "name": name[0],
@@ -221,21 +220,12 @@ def Register(name, description, message=None, command_type=1, url=None):
     if resp.status == 200 or resp.status == 201:
         mylogger.debug(f"Successfully Registered bot command: {name}")
         mylogger.debug(resp.data)
-        #for line in io.TextIOWrapper(resp):
-        #    mylogger.debug(line)
-        #for k,v in resp.headers.items():
-        #    mylogger.debug(f"{k}: {v}")
-
     else:
         mylogger.debug(resp.status, resp.reason)
-        #for line in io.TextIOWrapper(resp):
-        #    mylogger.debug(line)
-        #for k,v in resp.headers.items():
-        #    mylogger.debug(f"{k}: {v}")
 
 
 def Slash_commands(url=None):
-    if url == None:
+    if not url:
         url = f"https://discord.com/api/v9/applications/{_api}/guilds/{_guild}/commands"
 
     headers = {
@@ -252,15 +242,8 @@ def Slash_commands(url=None):
     if resp.status == 200 or resp.status == 304:
         mylogger.debug("Registered bot commands:")
         mylogger.debug(resp.data)
-        #for k,v in resp.headers.items():
-        #    mylogger.debug(f"{k}: {v}")
-
     else:
         mylogger.debug(resp.status, resp.reason)
-        #for line in io.TextIOWrapper(resp):
-        #    mylogger.debug(line)
-        #for k,v in resp.headers.items():
-        #    mylogger.debug(f"{k}: {v}")
 
 
 def Change_username(username):
@@ -287,7 +270,7 @@ def Filter(file):
             for line in f:
                 if line[0].isupper():
                     lang = line.strip()
-                elif lang is not None and line != "\n":
+                elif lang and line != "\n":
                     if lang not in banned_words:
                         banned_words[lang] = [line.strip()]
                     else:
@@ -316,17 +299,22 @@ def _Event_handler(ws, op_code, seq, message):
     elif op_code == Op_Code.RECONNECT:
         _Reconnect()
     elif op_code == Op_Code.INVALID_SESSION:
+
         # Discord sends this op code if it's down, so according to the docs I should continue to heartbeat.
         # This could be ambiguous and thus behave incorrectly.
         mylogger.fatal("Discord is down, waiting untill it's up...")
         _ack_heartbeat = True
     elif op_code == Op_Code.HELLO:
-        mylogger.debug("Got a hello request")
+        mylogger.debug("Hello request received.")
         def Send_heartbeat(ws, _loop_heartbeat):
             while _loop_heartbeat is True:
                 global _ack_heartbeat
+
+                # None = the first initiation of the connection.
                 if _ack_heartbeat is None or _ack_heartbeat is True:
-                    # Only check for ack of heartbeat if connection is established which includes sending a heartbeat once.
+
+                    # Only check for ack of a heartbeat after the connection is established, 
+                    # because the process of connecting includes sending a heartbeat once.
                     if _ack_heartbeat is True:
                         _ack_heartbeat = False
                     mylogger.debug("Send heartbeat interval")
@@ -454,12 +442,12 @@ def _Interactions(message):
             mylogger.debug(http_resp.data)
             break
 
-    if http_resp == None:
+    if not http_resp:
         mylogger.warning("Command has not been registered.")
 
 
 # This function checks the message content as opposed to its name.
-# This will become a privilige in April of 2022 for bots that are in more than 75 servers.
+# This will become a privilige in August 31st of 2022 for bots that are in more than 75 servers, and also GUILD_PRESENCES and GUILD_MEMBERS intents.
 # Note: GUILD_MESSAGES intents needs to be specified when identifying to trigger this function.
 
 def _Message_content(message):
@@ -489,7 +477,7 @@ def _Message_content(message):
                     mylogger.warning(f"Found {k} bad word, but no reaction defined.")
                 break
 
-    if data is not None:
+    if data:
         http_resp = _RequestHTTP("POST", url, data)
         mylogger.debug(http_resp.data)
         http_resp = _RequestHTTP("DELETE", url_delete)
@@ -499,7 +487,11 @@ def _Message_content(message):
 def _On_message(ws, message):
     mylogger.debug(ws)
     message_d = json.loads(message)
-    mylogger.debug(f"message: {message_d}")
+
+    mylogger.debug("START Message content: \n")
+    # Print JSON structures nicely with format_print.
+    mylogger.debug(message_d, True)
+    mylogger.debug("END Message content end\n")
     
     if message_d["t"] == "READY":
         global bot_name
@@ -512,8 +504,8 @@ def _On_message(ws, message):
         op_code = None
         seq = message_d["s"]
 
-        if Connection.interval is None:
-            if message_d["d"] is not None or message_d["d"] is not False and "heartbeat_interval" in message["d"]:
+        if not Connection.interval:
+            if message_d["d"] and "heartbeat_interval" in message_d["d"]:
                 Connection.interval = int((message_d["d"]["heartbeat_interval"]) / 1000)
 
         mylogger.debug(f"interval: {Connection.interval}")
@@ -526,7 +518,7 @@ def _On_message(ws, message):
 
         _Event_handler(ws, op_code, seq, message)
 
-        if Connection.identified is False:
+        if not Connection.identified:
             _Identify(ws)
             Connection.identified = True
             Connection.id = message_d["d"]["session_id"]
@@ -534,7 +526,7 @@ def _On_message(ws, message):
 
 def _On_open(ws):
     mylogger.info("Connected")
-    mylogger.debug(f"gateway {Connection.wss}\n")
+    mylogger.debug(f"gateway {Connection.url}\n")
 
 
 # Error gets fired even though no errors have been found,
@@ -544,35 +536,35 @@ def _On_error(ws, error):
 
 
 def _On_close(ws, close_status_code, close_msg):
-    mylogger.info("\nConnection closed")
-    mylogger.debug(f"Status: {close_status_code}")
+    mylogger.info("Connection closed")
+    mylogger.debug(f"Close status code: {close_status_code}")
     mylogger.debug(f"Close message: {close_msg}\n")
     os._exit(0)
 
 
 def _Connect():
-    if Connection.wss is None:
+    if not Connection.url:
         # Create a file if gateway is not already cached
         if os.path.isfile("url.txt") is False: 
-            mylogger.debug("Gateway is not cached yet")
+            mylogger.debug("Gateway is not cached yet.")
             url = "https://discord.com/api/v9/gateway/bot"
             resp = _RequestHTTP("GET", url)
-            Connection.wss = ((json.loads(resp.data)["url"]) + "?v=9&encoding=json")
+            Connection.url = ((json.loads(resp.data)["url"]) + "?v=9&encoding=json")
             with open("url.txt", "w") as f:
-                f.write(Connection.wss)
+                f.write(Connection.url)
         else:
-            mylogger.debug("Got the cached gateway")
+            mylogger.debug("Used cached gateway.")
             with open("url.txt", "r") as f:
-                Connection.wss = f.readline().strip("\n")
+                Connection.url = f.readline().strip("\n")
 
-    Connection.ws = websocket.WebSocketApp(Connection.wss, on_message=_On_message, on_error=_On_error, 
+    Connection.ws = websocket.WebSocketApp(Connection.url, on_message=_On_message, on_error=_On_error, 
                                        on_close=_On_close, on_open=_On_open)
     Connection.ws.run_forever()
 
 
 def Connect(token, api, guild=None, intents=None):
     #websocket.enableTrace(True)
-    if token is not None or api is not None:
+    if token and api:
         global _token
         global _api
         global _guild
@@ -585,13 +577,15 @@ def Connect(token, api, guild=None, intents=None):
             for n in intents:
                 if n in Intents_Token:
                     intents_flag += Intents_Token[n]
+            if intents_flag == 0:
+                # Intents is required upon identifying, so the default is GUILDS.
+                intents_flag = 1
 
-        elif intents is not None:
+        elif intents:
             mylogger.fatal("Intents must be an array.")
             os._exit(0)
 
-        if intents_flag == 0:
-            # Intents is required upon identifying, so the default is GUILDS.
+        else:
             intents_flag = 1
 
         mylogger.debug(f"{intents_flag=}")
@@ -604,14 +598,14 @@ def Connect(token, api, guild=None, intents=None):
 
 def _Keep_alive():
     signal.signal(signal.SIGINT, _Interrupt)
-    # We need this keep the main thread alive, since python only executes 1 thread at a time due to the global interperter lock, 
-    # to stop the program immediately on pressing CTRL + C.
+    # We need this to keep the main thread alive, since daemon threads stop running when the main program stops, 
+    # by pressing CTRL + C.
     while True:
         pass
 
-# Entry point to all bot applications, this function is required to keep the program running execute user defined functions.
+# Entry point to all bot applications, this function is required to keep the program running and execute user defined functions.
 def Main(func):
-    if _token is not None or _api is not None: 
+    if _token and _api: 
         def wrapper(*args, **kwargs):
             # Bug-fatal: calling this too many times could cause a too many request error, 
             # and having this error too many times causes your token to be revoked; thus your bot disabled.
@@ -619,6 +613,5 @@ def Main(func):
 
         return wrapper(), _Keep_alive()
     else:
-        mylogger.fatal("You are not connected.")
-
-
+        mylogger.fatal("No token or api key given.")
+        os._exit(0)

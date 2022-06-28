@@ -2,7 +2,7 @@ CSI_FG  = "\x1b[38;2;"
 CSI_BG  = "\x1b[48;2;"
 CSI_END = "\x1b[m"
 
-class Colors:
+class Color:
     red   = "255;0;0m"
     green = "0;255;0m"
     blue  = "0;0;255m"
@@ -18,14 +18,11 @@ class Colors:
 
 def Colored(text, fg=None, bg=None):
     output = ""
-    color_given = False
     if fg:
         output += CSI_FG + fg  
-        color_given = True
     if bg:
         output += CSI_BG + bg
-        color_given = True
-    if color_given:
+    if output:
         output += text + CSI_END
     else:
         return text
@@ -61,7 +58,7 @@ def EnableVT():
             return False
 
         mode.value |= ENABLE_VIRTUAL_TERMINAL_PROCESSING.value
-        if not kernel.SetConsoleMode(stdout, mode):
+        if not kernel.SetConsoleMode(stdout, mode.value):
             return False
     else:
         return False
